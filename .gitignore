@@ -40,3 +40,5 @@ next-env.d.ts
 # エディタ
 .vscode/
 .idea/
+
+/app/generated/prisma

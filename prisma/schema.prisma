@@ -1,0 +1,79 @@
+// 調整くん — データベーススキーマ
+// 変更したら `npx prisma migrate dev --name 変更内容` でDBに反映する
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")          // Neon pooled 接続（アプリ実行時）
+  directUrl = env("DATABASE_URL_UNPOOLED") // Neon direct 接続（マイグレーション時）
+}
+
+// 出欠の状態: ○(参加) △(未定) ×(不参加)
+enum ResponseStatus {
+  OK
+  MAYBE
+  NG
+}
+
+// イベント（1つの日程調整）
+model Event {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  adminToken  String    @unique @default(cuid()) // 管理用の秘密トークン（編集/削除URLに使う）
+  deadline    DateTime? // 回答期限（任意）
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  candidates   EventDate[]
+  participants Participant[]
+
+  @@index([adminToken])
+}
+
+// 候補日程
+model EventDate {
+  id        String    @id @default(cuid())
+  eventId   String
+  label     String    // 例: "7/10(金) 19:00〜"（自由入力）
+  startAt   DateTime? // 並び替え・当日判定用（任意）
+  sortOrder Int       @default(0)
+
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  responses Response[]
+
+  @@index([eventId])
+}
+
+// 参加者（回答者）
+model Participant {
+  id        String   @id @default(cuid())
+  eventId   String
+  name      String
+  comment   String?
+  editToken String   @unique @default(cuid()) // 本人が後から回答を編集するための秘密トークン
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  event     Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  responses Response[]
+
+  @@index([eventId])
+}
+
+// 個々の回答（参加者 × 候補日 ごとに1つ）
+model Response {
+  id            String         @id @default(cuid())
+  participantId String
+  eventDateId   String
+  status        ResponseStatus
+
+  participant Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  eventDate   EventDate   @relation(fields: [eventDateId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, eventDateId]) // 1人が同じ候補日に二重回答できないようにする
+  @@index([eventDateId])
+}
