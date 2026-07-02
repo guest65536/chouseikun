@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { submitResponseSchema } from "@/lib/validation";
+import { sendResponseNotification } from "@/lib/email";
 
 export type SubmitResponseState = { error?: string; success?: boolean };
 
@@ -50,6 +52,28 @@ export async function submitResponse(
       },
     },
   });
+
+  // 管理者に通知メールを送る（メール登録があるイベントのみ）。
+  // 送信に失敗しても回答自体は成功扱いにする。
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    select: { title: true, adminEmail: true },
+  });
+  if (event?.adminEmail) {
+    try {
+      const h = await headers();
+      const host = h.get("host") ?? "localhost:3000";
+      const proto = h.get("x-forwarded-proto") ?? "http";
+      await sendResponseNotification({
+        to: event.adminEmail,
+        eventTitle: event.title,
+        participantName: name,
+        eventUrl: `${proto}://${host}/e/${eventId}`,
+      });
+    } catch (e) {
+      console.error("[email] 通知処理でエラー:", e);
+    }
+  }
 
   // 集計表を最新にする
   revalidatePath(`/e/${eventId}`);

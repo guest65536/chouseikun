@@ -12,6 +12,11 @@ export const createEventSchema = z.object({
     .trim()
     .max(2000, "説明は2000文字以内で入力してください")
     .optional(),
+  adminEmail: z
+    .string()
+    .trim()
+    .email("メールアドレスの形式が正しくありません")
+    .optional(),
   candidates: z
     .array(z.string().trim().min(1))
     .min(1, "候補日を1つ以上入力してください")

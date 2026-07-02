@@ -10,9 +10,13 @@ export async function createEvent(
   _prevState: CreateEventState,
   formData: FormData
 ): Promise<CreateEventState> {
+  // メール欄は空文字なら「未入力」として扱う（optional な email 検証を通すため）
+  const emailRaw = String(formData.get("adminEmail") ?? "").trim();
+
   const parsed = createEventSchema.safeParse({
     title: formData.get("title") ?? "",
     description: formData.get("description") ?? "",
+    adminEmail: emailRaw === "" ? undefined : emailRaw,
     // 候補日は同名フィールドを複数送るので getAll で配列として受け取り、空欄は除外
     candidates: formData
       .getAll("candidates")
@@ -24,12 +28,13 @@ export async function createEvent(
     return { error: parsed.error.issues[0]?.message ?? "入力内容を確認してください" };
   }
 
-  const { title, description, candidates } = parsed.data;
+  const { title, description, adminEmail, candidates } = parsed.data;
 
   const event = await prisma.event.create({
     data: {
       title,
       description: description || null,
+      adminEmail: adminEmail || null,
       candidates: {
         create: candidates.map((label, index) => ({
           label,

@@ -62,6 +62,22 @@ export default function EventForm() {
         />
       </div>
 
+      <div className="space-y-1">
+        <label htmlFor="adminEmail" className="block text-sm font-medium">
+          通知メール（任意）
+        </label>
+        <input
+          id="adminEmail"
+          name="adminEmail"
+          type="email"
+          placeholder="例: you@example.com"
+          className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+        />
+        <p className="text-xs text-gray-400">
+          入力すると、誰かが回答したときにこのアドレスへお知らせが届きます。
+        </p>
+      </div>
+
       <div className="space-y-2">
         <label className="block text-sm font-medium">
           候補日 <span className="text-red-500">*</span>

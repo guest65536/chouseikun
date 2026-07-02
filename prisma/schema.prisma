@@ -24,6 +24,7 @@ model Event {
   title       String
   description String?
   adminToken  String    @unique @default(cuid()) // 管理用の秘密トークン（編集/削除URLに使う）
+  adminEmail  String?   // 回答があったとき通知を送る管理者メール（任意）
   deadline    DateTime? // 回答期限（任意）
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
